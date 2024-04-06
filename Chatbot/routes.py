@@ -12,6 +12,8 @@ import moviepy.editor as mp
 import time
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 import speech_recognition as sr
+from openai import OpenAI
+import os
 
 bp = Blueprint("routes", __name__)
 
@@ -37,15 +39,23 @@ async def site_details(session, url):
         try:
             soup = BeautifulSoup(html, 'html.parser')
             title = soup.title.text if soup.title else "Title not found"
+            
+            # Get meta description
             metas = soup.find_all('meta')
             description = [meta.attrs['content'] for meta in metas if
                            'name' in meta.attrs and meta.attrs['name'] == 'description']
             description = description[0] if description else ""
+            
+            # Get og:image
+            og_image = [meta.attrs['content'] for meta in metas if
+                        'property' in meta.attrs and meta.attrs['property'] == 'og:image']
+            og_image = og_image[0] if og_image else ""
+            
             title_with_link = f"• <b><a href='{url}' target='_blank'>{title}</a></b>"
-            return {'url': url, 'title': title_with_link, 'description': description}
+            return {'url': url, 'title': title_with_link, 'description': description, 'og_image': og_image}
         except Exception as e:
             print(f"Error parsing HTML from {url}: {e}")
-    return {'url': url, 'title': '', 'description': ''}
+    return {'url': url, 'title': '', 'description': '', 'og_image': ''}
 
 
 async def search_google_async(query, num_results=10, lang="en"):
@@ -66,7 +76,7 @@ async def search_google():
 
     # Save the results to an HTML file
     await save_results_to_html(results_with_snippets, user_message)
-
+    print("Vaishnavi   ",{'results': results_with_snippets})
     # Return the JSON response
     return jsonify({'results': results_with_snippets})
 
@@ -150,7 +160,9 @@ async def change_video_src_handler():
 
 def check_matching_phrase(input_text):
     phrases = [
-    "Hi"
+    "Hi",
+    "how are you?",
+    "how are you",
     "Hi, how are you?",
     "What's up?",
     "How's it going?",
@@ -161,6 +173,24 @@ def check_matching_phrase(input_text):
         if input_text.lower() == phrase.lower():
             return True
     return False
+
+def summarize_content(content):
+    client = OpenAI(
+    api_key="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",
+    )
+    prompt_text = [{"role":"system","content":"You are a serach engine.Summarize/analyze webpages to give comprehensive information"},{"role":"user","content":content}]
+    response = client.completions.create(        
+        model="gpt-3.5-turbo-instruct",
+        prompt=prompt_text,
+        max_tokens=1000,  # Adjust the max tokens to control the length of the summary
+        temperature=0.6,  # Adjust the temperature for diversity in the generated text
+        top_p=1.0,
+        frequency_penalty=0.0,
+        presence_penalty=0.0,
+        
+    )
+    summary = response.choices[0].text.strip()
+    return summary
 
 # @app.route('/record_audio', methods=['POST'])
 # async def record_audio():
