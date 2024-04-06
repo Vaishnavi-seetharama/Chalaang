@@ -45,9 +45,13 @@
     <div class="row">
         {% for search in result.searches[:3] %}
         <div class="col-sm-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">{{ search.title }}</h5>
+            <div class="card" style="height: 400px">
+                <div class="centered-image-container">
+                      <img class="card-img-top responsive-image " src="{{search.og_image}}" alt="Card image cap"
+                     >
+                </div>
+                <div class="card-body" style="overflow-y: auto;">
+                    <h5 class="card-title">{{ search.title | safe }}</h5>
                     <p class="card-text">{{ search.description }}</p>
                 </div>
             </div>
@@ -56,10 +60,10 @@
         {% endfor %}
         <!-- Generate "View More" card when index is 2 -->
         <div class="col-sm-3">
-            <div class="card" data-toggle="modal" data-target="#exampleModal">
-                <div class="card-body">
-                    <h5 class="card-title">View More</h5>
-                    <p class="card-text">Click to view all</p>
+            <div class="card" data-toggle="modal" data-target="#exampleModal" style="height: 400px">
+                <div class="card-body" style=" overflow-y: auto;">
+                    <h5 class="card-title">View More >> </h5>
+                    <a class="card-text">Click to view all</a>
                 </div>
             </div>
         </div>
@@ -67,20 +71,30 @@
     <!-- Modal -->
     <div class="modal fade right" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
          aria-hidden="true">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog modal-lg" role="document"  style="width:500px">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Modal Title</h5>
+                    <h5 class="modal-title" id="exampleModalLabel">Search Result</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="modal-body">
-                    Modal body text goes here.
+                <div class="modal-body justify-content-center align-items-center">
+                    {% for search in result.searches %}
+                    <div class="card" style="width: 300px;align-items: center" >
+                        <img class="card-img-top responsive-image " alt="" src="{{search.og_image}}" alt="Card image cap" height="500px"
+                     >
+
+                        <div class="card-body" style=" overflow-y: auto;">
+                           <h5 class="card-title">{{ search.title | safe }}</h5>
+                            <p class="card-text">{{ search.description }}</p>
+                        </div>
+                    </div>
+                    <hr/>
+                    {% endfor %}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary">Save changes</button>
                 </div>
             </div>
         </div>
@@ -90,6 +104,9 @@
         <h5 class="whitespace-pre-line break-words [word-break:break-word]  default font-display text-3xl font-regular text-textMain dark:text-textMainDark selection:bg-super/50 selection:text-textMain dark:selection:bg-superDuper/10 dark:selection:text-superDark">
             <i class="fa fa-magic icon-style" aria-hidden="true"></i>Answer<br/>
         </h5>
+        <div>
+            {{result.summary}}
+        </div>
     </div>
     <hr/>
     <div class="col-span-8">
@@ -97,46 +114,13 @@
             <i class="fas fa-chart-line icon-style"></i>
             Interest Over Time<br/>
         </h5>
-        <!-- Container for the Plotly graph -->
-        <div id="plotly-graph"></div>
-
+        <div id="plotly-container"></div>
     </div>
+    <br/>
+    <hr/>
 </div>
-<script>
-    // Dummy data (replace with data from the backend)
-    var xData = [1, 2, 3, 4, 5];
-    var yData = [10, 15, 13, 17, 20];
 
-     var layout = {
-        xaxis: {
-            title: 'X Label', // X-axis label
-            color: '#FFFFFF' // X-axis label color (white)
-        },
-        yaxis: {
-            title: 'Y Label', // Y-axis label
-            color: '#FFFFFF' // Y-axis label color (white)
-        },
-        plot_bgcolor: '#1E1E1E', // Plot background color (dark gray)
-        paper_bgcolor: '#1E1E1E', // Paper background color (dark gray)
-        font: {
-            color: '#FFFFFF' // Font color (white)
-        }
-    };
 
-    // Define the plot data
-    var data = [{
-        x: xData, // X data
-        y: yData, // Y data
-        type: 'scatter', // Type of plot (line chart)
-        mode: 'lines', // Display as lines
-        line: {
-            color: 'green' // Line color (white)
-        }
-    }];
-
-    // Render the Plotly graph
-    Plotly.newPlot('plotly-graph', data, layout);
-</script>
 <!-- Bootstrap JS -->
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>

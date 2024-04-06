@@ -201,6 +201,15 @@ video:-webkit-full-page-media {
     cursor: pointer; /* Cursor style */
     transition: background-color 0.3s ease; /* Smooth transition */
 }
+ .centered-image-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+ .responsive-image {
+            max-width: 100%; /* Ensure the image doesn't exceed its container */
+            height: 150px; /* Let the height adjust automatically based on the width */
+        }
 
 .btn-dark:hover {
     background-color: #212529; /* Darker color on hover */
