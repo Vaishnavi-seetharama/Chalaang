@@ -1,5 +1,8 @@
 import json
-
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk import pos_tag
 from pytrends.request import TrendReq
 from quart import send_file, Blueprint, render_template
 import asyncio
@@ -54,7 +57,7 @@ async def site_details(session, url):
             # Get og:image
             og_image = [meta.attrs['content'] for meta in metas if
                         'property' in meta.attrs and meta.attrs['property'] == 'og:image']
-            og_image = og_image[0] if og_image else ""
+            og_image = og_image[0] if og_image and og_image[0] != '' else "https://www.simplilearn.com/ice9/free_resources_article_thumb/Types_of_Artificial_Intelligence.jpg"
 
             title_with_link = f"<a href='{url}' target='_blank'>{title}</a>"
             return {'url': url, 'title': title_with_link, 'description': description, 'og_image': og_image}
@@ -70,18 +73,35 @@ async def search_google_async(query, num_results=10, lang="en"):
         tasks = [site_details(session, url) for url in search_results]
         return await asyncio.gather(*tasks)
 
-
+def extract_focus_keyword(text):
+    # Tokenize the text into words
+    tokens = word_tokenize(text.lower())
+    # Filter out stop words
+    stop_words = set(stopwords.words('english'))
+    filtered_tokens = [word for word in tokens if word not in stop_words]
+    # Tag parts of speech
+    tagged_tokens = pos_tag(filtered_tokens)
+    # Extract nouns as potential focus keywords
+    nouns = [word for word, pos in tagged_tokens if pos.startswith('NN')]
+    # Return the first noun as the focus keyword
+    if nouns:
+        return nouns[0]
+    else:
+        return None
 @bp.route('/result', methods=['GET'])
 async def show_result():
     data = {}
     with open("result.json", "r") as json_file:
         data = json.load(json_file)
+
     return await render_template('results.html', result=data)
 
 
 @bp.route('/search', methods=['POST'])
 async def search_google():
     result = {}
+    summary =""
+
     user_message = (await request.json)['message']
     if check_matching_phrase(user_message):
         results_with_snippets = "Hello! I am feeling wonderfull today. How can I assist you today?"
@@ -93,29 +113,32 @@ async def search_google():
         if len(results_with_snippets) > 0:
             var = results_with_snippets[0]["description"]
         summary = summarize_content(var)
-        result["summary"] = summary
-
     result["searches"] = results_with_snippets
-    # result["graph"] = track_keyword_trends(user_message)
+
+    result["graph"] = track_keyword_trends(user_message)
     with open("result.json", "w") as json_file:
         json.dump(result, json_file)
-
+    sentences = summary.split('. ')
+    first_three_sentences = '. '.join(sentences[:3])
+    result["summary"] = first_three_sentences
+    result["query"] = user_message
     # Return the JSON response
     return jsonify({'results': result})
 
 
 def track_keyword_trends(keyword):
+    keyword = extract_focus_keyword(keyword)
     # Initialize pytrends
     pytrends = TrendReq()
 
     # Build Payload
-    pytrends.build_payload(kw_list=[keyword])
+    pytrends.build_payload(kw_list=[keyword], timeframe='today 12-m')
 
     # Get Interest Over Time
     interest_over_time_df = pytrends.interest_over_time()
 
     # Extract x-axis and y-axis data
-    x_data_time = interest_over_time_df.index
+    x_data_time = interest_over_time_df.index.strftime('%Y-%m-%d').tolist()
     y_data_time = interest_over_time_df.index.strftime('%Y-%m-%d').tolist()
     plot_type = 'line'
 
@@ -124,8 +147,8 @@ def track_keyword_trends(keyword):
     top_regions = interest_by_region_df[keyword].sort_values(ascending=False).head(10)
 
     # Extract x-axis and y-axis data for region chart
-    x_data_region = top_regions.index
-    y_data_region = top_regions.values
+    x_data_region = top_regions.index.tolist()  # Convert Index object to list
+    y_data_region = top_regions.values.tolist()
 
     return [{'x1': x_data_time, 'label': 'Date', 'graph_type': plot_type, 'y1': y_data_time, 'label': 'Interest',
              'graph_type': plot_type},

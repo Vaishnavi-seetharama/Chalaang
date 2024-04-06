@@ -62,6 +62,7 @@ const sendMessage = async () => {
                                               </div>
                                         </div>`;
                 });
+                window.query = data.results.query
                 chatBotResponse.innerHTML += `<button class="btn-dark" onclick="navigateToExplore()">Explore</button>`
                 fetch('/change_video_src?message=' + data.results.summary, {
                     method: 'GET',
@@ -86,13 +87,13 @@ const sendMessage = async () => {
             console.error('Error:', error);
             const chatBotResponse = document.querySelector(".response .new_" + i);
             chatBotResponse.innerHTML = "Oops! An error occurred. Please try again";
-            document.querySelector('.new').remove();
+            document.querySelector('.new-'+ i).remove();
         }
     }
 };
 
 function navigateToExplore() {
-    window.location.href = "/result"
+    window.location.href = "/result?query="+window.query
 }
 
 // Event listener for send button click
