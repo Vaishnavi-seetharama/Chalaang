@@ -1,0 +1,8 @@
+aiohttp==3.9.3
+beautifulsoup4==4.12.3
+googlesearch_python==1.2.3
+moviepy==1.0.3
+pyttsx3==2.90
+quart==0.19.5
+quart_cors==0.7.0
+SpeechRecognition==3.10.3
