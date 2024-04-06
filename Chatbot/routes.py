@@ -59,7 +59,10 @@ async def search_google_async(query, num_results=10, lang="en"):
 @bp.route('/search', methods=['POST'])
 async def search_google():
     user_message = (await request.json)['message']
-    results_with_snippets = await search_google_async(user_message)
+    if check_matching_phrase(user_message):
+        results_with_snippets="Hello! I am feeling wonderfull today. How can I assist you today?"
+    else:
+        results_with_snippets = await search_google_async(user_message)
 
     # Save the results to an HTML file
     await save_results_to_html(results_with_snippets, user_message)
@@ -142,7 +145,22 @@ async def change_video_src_handler():
     user_message = (await request.json)['message']
     results_with_snippets = await search_google_async(user_message)
     assistant(results_with_snippets[0]['description'])
+
     return await change_video_src()
+
+def check_matching_phrase(input_text):
+    phrases = [
+    "Hi"
+    "Hi, how are you?",
+    "What's up?",
+    "How's it going?",
+    "Good morning!",
+    "Hey there!"
+    ]
+    for phrase in phrases:
+        if input_text.lower() == phrase.lower():
+            return True
+    return False
 
 # @app.route('/record_audio', methods=['POST'])
 # async def record_audio():
