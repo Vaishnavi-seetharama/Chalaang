@@ -30,7 +30,7 @@
         <li class="nav-item">
             <!-- Share button -->
             <a class="nav-link " aria-current="page" href="/"> <i onclick="shareWhatsapp()"
-                                                                        class="fas fa-share"></i></a>
+                                                                  class="fas fa-share"></i></a>
 
         </li>
     </ul>
@@ -49,7 +49,7 @@
         </h5>
     </div>
     <div class="row">
-        {% for search in result.searches[:3] %}
+        {% for search in result.searches[1:4] %}
         <div class="col-sm-3">
             <div class="card" style="height: 400px">
                 <div class="centered-image-container">
@@ -168,47 +168,53 @@
 </script>
 <script>
     // Data received from Flask
-    var graphsData = {{ result.graph | tojson}}
+    try {
+        debugger
+        var graphsData = {{result.graph | tojson}}
+        // Render each Plotly graph dynamically
+        for (var i = 0; i < graphsData.length; i++) {
+            var graphData = graphsData[i];
+            var containerId = 'plotly-graph-' + i;
 
-    // Render each Plotly graph dynamically
-    for (var i = 0; i < graphsData.length; i++) {
-        var graphData = graphsData[i];
-        var containerId = 'plotly-graph-' + i;
+            // Create a div for each graph
+            var div = document.createElement('div');
+            div.setAttribute('id', containerId);
+            document.getElementById('plotly-container').appendChild(div);
 
-        // Create a div for each graph
-        var div = document.createElement('div');
-        div.setAttribute('id', containerId);
-        document.getElementById('plotly-container').appendChild(div);
+            // Render the Plotly graph
+            var layout = {
+                xaxis: {
+                    title: graphData['x-label'],
+                    color: '#FFFFFF'
+                },
+                yaxis: {
+                    title: graphData['y-label'],
+                    color: '#FFFFFF'
+                },
+                plot_bgcolor: '#1E1E1E',
+                paper_bgcolor: '#1E1E1E',
+                font: {
+                    color: '#FFFFFF'
+                }
+            };
 
-        // Render the Plotly graph
-        var layout = {
-            xaxis: {
-                title: graphData['x-label'],
-                color: '#FFFFFF'
-            },
-            yaxis: {
-                title: graphData['y-label'],
-                color: '#FFFFFF'
-            },
-            plot_bgcolor: '#1E1E1E',
-            paper_bgcolor: '#1E1E1E',
-            font: {
-                color: '#FFFFFF'
-            }
-        };
+            var data = [{
+                x: graphData['x1'] || graphData['x2'],
+                y: graphData['y1'] || graphData['y2'],
+                type: graphData['type'],
+                mode: 'lines',
+                line: {
+                    color: 'green'
+                }
+            }];
 
-        var data = [{
-            x: graphData['x1'] || graphData['x2'],
-            y: graphData['y1'] || graphData['y2'],
-            type: graphData['type'],
-            mode: 'lines',
-            line: {
-                color: 'green'
-            }
-        }];
-
-        Plotly.newPlot(containerId, data, layout);
+            Plotly.newPlot(containerId, data, layout);
+        }
+    } catch (error) {
+        console.log(Err)
     }
+
+
 </script>
 </body>
 </html>

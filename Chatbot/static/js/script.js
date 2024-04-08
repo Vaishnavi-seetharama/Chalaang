@@ -64,6 +64,7 @@ const sendMessage = async () => {
                 });
                 window.query = data.results.query
                 chatBotResponse.innerHTML += `<button class="btn-dark" onclick="navigateToExplore()">Explore</button>`
+
                 fetch('/change_video_src?message=' + data.results.summary, {
                     method: 'GET',
                 })

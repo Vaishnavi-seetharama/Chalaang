@@ -1,4 +1,6 @@
 import json
+import threading
+
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
@@ -24,7 +26,8 @@ import requests
 from bs4 import BeautifulSoup
 
 bp = Blueprint("routes", __name__)
-
+# Initialize Event object
+video_thread_completed = threading.Event()
 
 @bp.route('/', methods=['GET'])
 async def home():
@@ -57,13 +60,15 @@ async def site_details(session, url):
             # Get og:image
             og_image = [meta.attrs['content'] for meta in metas if
                         'property' in meta.attrs and meta.attrs['property'] == 'og:image']
-            og_image = og_image[0] if og_image and og_image[0] != '' else "https://www.simplilearn.com/ice9/free_resources_article_thumb/Types_of_Artificial_Intelligence.jpg"
+            og_image = og_image[0] if og_image and og_image[
+                0] != '' else "https://www.simplilearn.com/ice9/free_resources_article_thumb/Types_of_Artificial_Intelligence.jpg"
 
             title_with_link = f"<a href='{url}' target='_blank'>{title}</a>"
             return {'url': url, 'title': title_with_link, 'description': description, 'og_image': og_image}
         except Exception as e:
             print(f"Error parsing HTML from {url}: {e}")
-    return {'url': url, 'title': '', 'description': '', 'og_image': ''}
+    return {'url': url, 'title': '', 'description': '',
+            'og_image': "https://www.simplilearn.com/ice9/free_resources_article_thumb/Types_of_Artificial_Intelligence.jpg"}
 
 
 async def search_google_async(query, num_results=10, lang="en"):
@@ -72,6 +77,7 @@ async def search_google_async(query, num_results=10, lang="en"):
         search_results = list(set(search(query, num_results=num_results, lang=lang)))
         tasks = [site_details(session, url) for url in search_results]
         return await asyncio.gather(*tasks)
+
 
 def extract_focus_keyword(text):
     # Tokenize the text into words
@@ -88,6 +94,8 @@ def extract_focus_keyword(text):
         return nouns[0]
     else:
         return None
+
+
 @bp.route('/result', methods=['GET'])
 async def show_result():
     data = {}
@@ -100,8 +108,8 @@ async def show_result():
 @bp.route('/search', methods=['POST'])
 async def search_google():
     result = {}
-    summary =""
-
+    summary = ""
+    result["graph"] = []
     user_message = (await request.json)['message']
     if check_matching_phrase(user_message):
         results_with_snippets = "Hello! I am feeling wonderfull today. How can I assist you today?"
@@ -113,26 +121,52 @@ async def search_google():
         if len(results_with_snippets) > 0:
             var = results_with_snippets[0]["description"]
         summary = summarize_content(var)
-    result["searches"] = results_with_snippets
 
-    result["graph"] = track_keyword_trends(user_message)
-    with open("result.json", "w") as json_file:
-        json.dump(result, json_file)
+    result["searches"] = results_with_snippets
     sentences = summary.split('. ')
     first_three_sentences = '. '.join(sentences[:3])
     result["summary"] = first_three_sentences
     result["query"] = user_message
+    thread = threading.Thread(target=write_into_file, args=(results_with_snippets, summary,user_message,))
+    thread.start()
+    video_thread = threading.Thread(target=change_video_src_handler, args=(first_three_sentences,))
+    video_thread.start()
+
     # Return the JSON response
     return jsonify({'results': result})
 
+@bp.route('/change_video_src', methods=["GET"])
+def get_video():
+    # Wait for the video thread to complete
+    video_thread_completed.wait()
+    # Return response
+    return jsonify({})
+def write_into_file(results_with_snippets, summary, user_message):
+    result = {}
+    result["graph"] = []
+    result["searches"] = results_with_snippets
+    result["summary"] = summary
+    retry_cnt = 0
+    while retry_cnt < 4:
+        try:
+            result["graph"] = track_keyword_trends(user_message)
+            retry_cnt = 7
+        except Exception as e:
+            retry_cnt += 1
+            print("errror", e)
+
+    with open("result.json", "w") as json_file:
+        json.dump(result, json_file)
+    result["query"] = user_message
+
 
 def track_keyword_trends(keyword):
-    keyword = extract_focus_keyword(keyword)
+    keyword = "india"
     # Initialize pytrends
     pytrends = TrendReq()
 
     # Build Payload
-    pytrends.build_payload(kw_list=[keyword], timeframe='today 12-m')
+    pytrends.build_payload(kw_list=["india"], timeframe='today 12-m')
 
     # Get Interest Over Time
     interest_over_time_df = pytrends.interest_over_time()
@@ -208,9 +242,7 @@ def assistant(audio):
 
 
 # Flask route to handle the request to change video src
-@bp.route('/change_video_src')
-async def change_video_src_handler():
-    summary = request.args.get('message')
+def change_video_src_handler(summary):
     sentences = summary.split('. ')
     first_three_sentences = '. '.join(sentences[:3])
     assistant(first_three_sentences)
