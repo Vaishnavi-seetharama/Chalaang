@@ -7,5 +7,4 @@ cors(app)
 
 app.register_blueprint(routes_bp)
 
-if __name__ == "__main__":
-    app.run()
+
